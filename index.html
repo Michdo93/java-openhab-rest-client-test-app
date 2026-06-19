@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>java-openhab-rest-client · Testsuite</title>
+<style>
+  :root {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --border:    #2a2d3a;
+    --accent:    #f5a623;
+    --accent2:   #4a9eff;
+    --ok:        #3ddc84;
+    --fail:      #ff5f57;
+    --text:      #e8eaf0;
+    --muted:     #6b7080;
+    --mono:      'JetBrains Mono', 'Fira Mono', monospace;
+    --sans:      'Inter', system-ui, sans-serif;
+    --sidebar-w: 230px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header .logo { font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--accent); text-transform: uppercase; }
+  header .subtitle { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  header .status-pill { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .dot.on  { background: var(--ok); }
+  .dot.off { background: var(--fail); }
+
+  /* Connect bar */
+  #connect-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  #connect-bar input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--mono);
+    outline: none;
+  }
+  #connect-bar input:focus { border-color: var(--accent2); }
+  #connect-bar input#inp-url  { width: 220px; }
+  #connect-bar input#inp-user { width: 170px; }
+  #connect-bar input#inp-pass { width: 130px; }
+  #connect-bar input#inp-token { width: 200px; }
+  #connect-bar label { font-size: 11px; color: var(--muted); }
+  #connect-bar .sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+  button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: opacity .15s;
+  }
+  button:hover { opacity: .85; }
+  #btn-connect  { background: var(--accent); color: #000; }
+  .btn-run      { background: var(--accent2); color: #fff; }
+  .btn-test     { background: #2a2d3a; color: var(--text); border: 1px solid var(--border); }
+  .btn-clear    { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  #btn-sse-start { background: var(--ok);   color: #000; }
+  #btn-sse-stop  { background: var(--fail); color: #fff; }
+
+  /* Main layout */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* Sidebar */
+  aside {
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar-section { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .sidebar-section-title {
+    padding: 4px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .class-btn {
+    display: block; width: 100%; text-align: left;
+    padding: 7px 14px;
+    background: transparent; border: none;
+    color: var(--text); font-size: 12px; font-family: var(--mono);
+    cursor: pointer; border-radius: 0; font-weight: 400;
+    transition: background .1s;
+  }
+  .class-btn:hover  { background: var(--border); opacity: 1; }
+  .class-btn.active { background: #1e2235; color: var(--accent); border-left: 2px solid var(--accent); }
+
+  /* Content */
+  .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #class-title { font-size: 16px; font-weight: 700; color: var(--accent); font-family: var(--mono); padding: 12px 16px 0; }
+
+  /* Method pane */
+  #method-pane {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  #method-pane label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+  #method-select {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 10px; border-radius: 6px;
+    font-size: 12px; font-family: var(--mono); min-width: 220px;
+  }
+  #args-input {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 10px; border-radius: 6px;
+    font-size: 12px; font-family: var(--mono); width: 280px;
+  }
+
+  /* Stats */
+  #stats-bar {
+    display: flex; gap: 16px; padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; flex-shrink: 0;
+  }
+  .stat { display: flex; gap: 5px; align-items: center; }
+  .stat .n { font-weight: 700; font-family: var(--mono); }
+  .stat.ok-s   .n { color: var(--ok); }
+  .stat.fail-s .n { color: var(--fail); }
+  .stat.pend-s .n { color: var(--accent); }
+  .stat-label { color: var(--muted); }
+
+  /* Output */
+  #output {
+    flex: 1; overflow-y: auto;
+    padding: 12px 16px;
+    font-family: var(--mono); font-size: 12px; line-height: 1.7;
+  }
+  .out-line { margin-bottom: 2px; display: flex; gap: 8px; }
+  .out-line .ts   { color: var(--muted); font-size: 11px; min-width: 70px; }
+  .out-ok   .icon { color: var(--ok); }
+  .out-fail .icon { color: var(--fail); }
+  .out-info .icon { color: var(--accent2); }
+  .out-sse  .icon { color: var(--accent); }
+  .out-line .msg  { word-break: break-all; }
+
+  /* SSE bar */
+  #sse-bar {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 8px 16px;
+    display: flex; gap: 10px; align-items: center;
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  #sse-bar label { font-size: 11px; color: var(--muted); }
+  #sse-topic-input {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 5px 10px; border-radius: 6px;
+    font-size: 12px; font-family: var(--mono); width: 260px;
+  }
+  #sse-status { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">openHAB</span>
+  <span class="subtitle">java-openhab-rest-client</span>
+  <div class="status-pill">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Getrennt</span>
+  </div>
+</header>
+
+<div id="connect-bar">
+  <label>URL <input id="inp-url" type="text" value="https://myopenhab.org" placeholder="https://myopenhab.org"></label>
+  <label>E-Mail <input id="inp-user" type="text" placeholder="user@example.com"></label>
+  <label>Passwort <input id="inp-pass" type="password" placeholder="••••••••"></label>
+  <div class="sep"></div>
+  <label>API-Token (opt.) <input id="inp-token" type="text" placeholder="oh.openhab.xxx"></label>
+  <button id="btn-connect">Verbinden</button>
+</div>
+
+<div class="main">
+  <aside id="sidebar">
+    <div id="class-list">
+      <div style="padding:20px 14px;font-size:12px;color:var(--muted)">Bitte zuerst verbinden.</div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div id="class-title">REST-Klassen</div>
+
+    <div id="method-pane">
+      <div>
+        <label>Methode</label>
+        <select id="method-select"><option value="">— Klasse wählen —</option></select>
+      </div>
+      <div>
+        <label>Argumente (JSON-Array, z.B. ["itemName","ON"])</label>
+        <input id="args-input" type="text" placeholder='["arg1", "arg2"]'>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-run"  id="btn-run">▶ Ausführen</button>
+        <button class="btn-test" id="btn-test-all">🧪 Alle testen</button>
+        <button class="btn-clear" id="btn-clear">✕ Leeren</button>
+      </div>
+    </div>
+
+    <div id="stats-bar">
+      <div class="stat"><span class="n" id="s-total">0</span><span class="stat-label">Tests</span></div>
+      <div class="stat ok-s"><span class="n" id="s-ok">0</span><span class="stat-label">✓</span></div>
+      <div class="stat fail-s"><span class="n" id="s-fail">0</span><span class="stat-label">✗</span></div>
+      <div class="stat pend-s"><span class="n" id="s-pend">0</span><span class="stat-label">⏳</span></div>
+    </div>
+
+    <div id="output">
+      <div style="color:var(--muted);padding:4px 0">Klasse aus der Seitenleiste wählen…</div>
+    </div>
+
+    <div id="sse-bar">
+      <span style="font-size:11px;font-weight:700;color:var(--muted)">SSE Livestream</span>
+      <label>Topic <input id="sse-topic-input" type="text" placeholder="openhab/items/*/statechanged (leer = alle)"></label>
+      <button id="btn-sse-start">▶ Start</button>
+      <button id="btn-sse-stop">■ Stop</button>
+      <span id="sse-status">● Inaktiv</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Konfiguration ─────────────────────────────────────────────────────────────
+const BACKEND = 'https://java-openhab-rest-client-backend.onrender.com';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let CREDS  = null;
+let stats  = { total: 0, ok: 0, fail: 0, pend: 0 };
+
+// ── API-Map ───────────────────────────────────────────────────────────────────
+const API = {
+  'UUID': [
+    { label: 'getUUID', ep: () => ({ path: '/uuid' }) },
+  ],
+  'Systeminfo': [
+    { label: 'getSystemInfo', ep: () => ({ path: '/systeminfo' }) },
+    { label: 'getUoMInfo',    ep: () => ({ path: '/systeminfo/uom' }) },
+  ],
+  'Items': [
+    { label: 'getItems',              ep: ()  => ({ path: '/items' }) },
+    { label: 'getItem',               ep: (a) => ({ path: `/items/${a[0]}` }),                         hint: '["itemName"]' },
+    { label: 'getItemState',          ep: (a) => ({ path: `/items/${a[0]}/state` }),                   hint: '["itemName"]' },
+    { label: 'sendCommand',           ep: (a) => ({ path: `/items/${a[0]}/command`,   body: a[1] }),   hint: '["itemName","ON"]' },
+    { label: 'updateItemState',       ep: (a) => ({ path: `/items/${a[0]}/state/update`, body: a[1] }),hint: '["itemName","42"]' },
+    { label: 'addOrUpdateItem',       ep: (a) => ({ path: `/items/${a[0]}/addOrUpdate`, body: a[1] }), hint: '["itemName","{...}"]' },
+    { label: 'deleteItem',            ep: (a) => ({ path: `/items/${a[0]}/delete` }),                  hint: '["itemName"]' },
+    { label: 'addGroupMember',        ep: (a) => ({ path: `/items/${a[0]}/members/${a[1]}/add` }),     hint: '["group","member"]' },
+    { label: 'removeGroupMember',     ep: (a) => ({ path: `/items/${a[0]}/members/${a[1]}/remove` }), hint: '["group","member"]' },
+    { label: 'addTag',                ep: (a) => ({ path: `/items/${a[0]}/tags/${a[1]}/add` }),        hint: '["itemName","tag"]' },
+    { label: 'removeTag',             ep: (a) => ({ path: `/items/${a[0]}/tags/${a[1]}/remove` }),     hint: '["itemName","tag"]' },
+    { label: 'addMetadata',           ep: (a) => ({ path: `/items/${a[0]}/metadata/${a[1]}/add`, body: a[2] }), hint: '["itemName","ns","{...}"]' },
+    { label: 'removeMetadata',        ep: (a) => ({ path: `/items/${a[0]}/metadata/${a[1]}/remove` }), hint: '["itemName","ns"]' },
+    { label: 'getMetadataNamespaces', ep: (a) => ({ path: `/items/${a[0]}/metadata/namespaces` }),    hint: '["itemName"]' },
+    { label: 'getSemanticItem',       ep: (a) => ({ path: `/items/${a[0]}/semantic/${a[1]}` }),        hint: '["itemName","Location"]' },
+    { label: 'purgeOrphanedMetadata', ep: ()  => ({ path: '/items/metadata/purge' }) },
+  ],
+  'Things': [
+    { label: 'getThings',         ep: ()  => ({ path: '/things' }) },
+    { label: 'getThing',          ep: (a) => ({ path: `/things/${a[0]}` }),            hint: '["thing:type:id"]' },
+    { label: 'getThingStatus',    ep: (a) => ({ path: `/things/${a[0]}/status` }),     hint: '["thing:type:id"]' },
+    { label: 'getThingFirmwares', ep: (a) => ({ path: `/things/${a[0]}/firmwares` }), hint: '["thing:type:id"]' },
+    { label: 'enableThing',       ep: (a) => ({ path: `/things/${a[0]}/enable` }),     hint: '["thing:type:id"]' },
+    { label: 'disableThing',      ep: (a) => ({ path: `/things/${a[0]}/disable` }),    hint: '["thing:type:id"]' },
+    { label: 'deleteThing',       ep: (a) => ({ path: `/things/${a[0]}/delete` }),     hint: '["thing:type:id"]' },
+  ],
+  'Rules': [
+    { label: 'getRules',     ep: ()  => ({ path: '/rules' }) },
+    { label: 'getRule',      ep: (a) => ({ path: `/rules/${a[0]}` }),          hint: '["ruleUID"]' },
+    { label: 'enable',       ep: (a) => ({ path: `/rules/${a[0]}/enable` }),   hint: '["ruleUID"]' },
+    { label: 'disable',      ep: (a) => ({ path: `/rules/${a[0]}/disable` }),  hint: '["ruleUID"]' },
+    { label: 'runNow',       ep: (a) => ({ path: `/rules/${a[0]}/runnow` }),   hint: '["ruleUID"]' },
+    { label: 'getActions',   ep: (a) => ({ path: `/rules/${a[0]}/actions` }),  hint: '["ruleUID"]' },
+    { label: 'getTriggers',  ep: (a) => ({ path: `/rules/${a[0]}/triggers` }), hint: '["ruleUID"]' },
+    { label: 'getConditions',ep: (a) => ({ path: `/rules/${a[0]}/conditions` }),hint: '["ruleUID"]' },
+    { label: 'deleteRule',   ep: (a) => ({ path: `/rules/${a[0]}/delete` }),   hint: '["ruleUID"]' },
+  ],
+  'Actions': [
+    { label: 'getActions',        ep: ()  => ({ path: '/actions' }) },
+    { label: 'getActions(thing)', ep: (a) => ({ path: `/actions/${a[0]}` }), hint: '["thing:type:id"]' },
+  ],
+  'Addons': [
+    { label: 'getAddons',          ep: () => ({ path: '/addons' }) },
+    { label: 'getAddonTypes',      ep: () => ({ path: '/addons/types' }) },
+    { label: 'getAddonSuggestions',ep: () => ({ path: '/addons/suggestions' }) },
+    { label: 'getAddonServices',   ep: () => ({ path: '/addons/services' }) },
+    { label: 'getAddon',           ep: (a) => ({ path: `/addons/${a[0]}` }), hint: '["addonId"]' },
+    { label: 'installAddon',       ep: (a) => ({ path: `/addons/${a[0]}/install` }), hint: '["addonId"]' },
+    { label: 'uninstallAddon',     ep: (a) => ({ path: `/addons/${a[0]}/uninstall` }), hint: '["addonId"]' },
+  ],
+  'Audio': [
+    { label: 'getDefaultSink',   ep: () => ({ path: '/audio/defaultsink' }) },
+    { label: 'getDefaultSource', ep: () => ({ path: '/audio/defaultsource' }) },
+    { label: 'getSinks',         ep: () => ({ path: '/audio/sinks' }) },
+    { label: 'getSources',       ep: () => ({ path: '/audio/sources' }) },
+  ],
+  'Logging': [
+    { label: 'getLoggers',   ep: ()  => ({ path: '/logging' }) },
+    { label: 'getLogger',    ep: (a) => ({ path: `/logging/${a[0]}` }),              hint: '["org.openhab.core"]' },
+    { label: 'setLogger',    ep: (a) => ({ path: `/logging/${a[0]}/set`, params: { level: a[1] } }), hint: '["org.openhab.test","DEBUG"]' },
+    { label: 'removeLogger', ep: (a) => ({ path: `/logging/${a[0]}/delete` }),       hint: '["org.openhab.test"]' },
+  ],
+  'Links': [
+    { label: 'getLinks',      ep: () => ({ path: '/links' }) },
+    { label: 'getOrphanLinks',ep: () => ({ path: '/links/orphan' }) },
+  ],
+  'ChannelTypes':      [ { label: 'getChannelTypes',      ep: () => ({ path: '/channel-types' }) } ],
+  'ThingTypes':        [ { label: 'getThingTypes',        ep: () => ({ path: '/thing-types' }) } ],
+  'ConfigDescriptions':[ { label: 'getConfigDescriptions',ep: () => ({ path: '/config-descriptions' }) } ],
+  'Persistence': [
+    { label: 'getServices', ep: ()  => ({ path: '/persistence' }) },
+    { label: 'getItems',    ep: ()  => ({ path: '/persistence/items' }) },
+    { label: 'getItemData', ep: (a) => ({ path: `/persistence/items/${a[0]}` }), hint: '["itemName"]' },
+  ],
+  'Discovery': [ { label: 'getDiscoveryBindings', ep: () => ({ path: '/discovery' }) } ],
+  'Inbox': [
+    { label: 'getDiscoveredThings', ep: ()  => ({ path: '/inbox' }) },
+    { label: 'ignore',              ep: (a) => ({ path: `/inbox/${a[0]}/ignore` }),   hint: '["thingUID"]' },
+    { label: 'unignore',            ep: (a) => ({ path: `/inbox/${a[0]}/unignore` }), hint: '["thingUID"]' },
+    { label: 'delete',              ep: (a) => ({ path: `/inbox/${a[0]}/delete` }),   hint: '["thingUID"]' },
+  ],
+  'Sitemaps': [
+    { label: 'getSitemaps',    ep: ()  => ({ path: '/sitemaps' }) },
+    { label: 'getSitemap',     ep: (a) => ({ path: `/sitemaps/${a[0]}` }),            hint: '["sitemapName"]' },
+    { label: 'getSitemapPage', ep: (a) => ({ path: `/sitemaps/${a[0]}/${a[1]}` }),    hint: '["sitemap","pageId"]' },
+  ],
+  'Tags': [
+    { label: 'getTags',   ep: ()  => ({ path: '/tags' }) },
+    { label: 'getTag',    ep: (a) => ({ path: `/tags/${a[0]}` }),       hint: '["tagId"]' },
+    { label: 'deleteTag', ep: (a) => ({ path: `/tags/${a[0]}/delete` }),hint: '["tagId"]' },
+  ],
+  'Templates':    [ { label: 'getTemplates',    ep: () => ({ path: '/templates' }) } ],
+  'ModuleTypes':  [ { label: 'getModuleTypes',  ep: () => ({ path: '/module-types' }) } ],
+  'ProfileTypes': [ { label: 'getProfileTypes', ep: () => ({ path: '/profile-types' }) } ],
+  'Transformations': [
+    { label: 'getTransformations',        ep: () => ({ path: '/transformations' }) },
+    { label: 'getTransformationServices', ep: () => ({ path: '/transformations/services' }) },
+    { label: 'getTransformation',         ep: (a) => ({ path: `/transformations/${a[0]}` }), hint: '["uid"]' },
+  ],
+  'UI': [
+    { label: 'getUITiles',      ep: ()  => ({ path: '/ui/tiles' }) },
+    { label: 'getUITile',       ep: (a) => ({ path: `/ui/tiles/${a[0]}` }), hint: '["id"]' },
+    { label: 'getUIComponents', ep: (a) => ({ path: `/ui/components/${a[0]}` }), hint: '["namespace"]' },
+  ],
+  'Services': [
+    { label: 'getServices',      ep: ()  => ({ path: '/services' }) },
+    { label: 'getService',       ep: (a) => ({ path: `/services/${a[0]}` }),         hint: '["serviceId"]' },
+    { label: 'getServiceConfig', ep: (a) => ({ path: `/services/${a[0]}/config` }),  hint: '["serviceId"]' },
+  ],
+  'Iconsets': [ { label: 'getIconsets', ep: () => ({ path: '/iconsets' }) } ],
+  'Auth': [
+    { label: 'getAPITokens', ep: () => ({ path: '/auth/apitokens' }) },
+    { label: 'getSessions',  ep: () => ({ path: '/auth/sessions' }) },
+  ],
+  'Voice': [
+    { label: 'getVoices',       ep: () => ({ path: '/voice/voices' }) },
+    { label: 'getDefaultVoice', ep: () => ({ path: '/voice/defaultvoice' }) },
+    { label: 'getInterpreters', ep: () => ({ path: '/voice/interpreters' }) },
+    { label: 'say',             ep: (a) => ({ path: '/voice/say', body: a[0] }), hint: '["Hallo openHAB"]' },
+  ],
+};
+
+const SECTIONS = {
+  'System':       ['UUID', 'Systeminfo'],
+  'Core':         ['Items', 'Things', 'Rules'],
+  'Automation':   ['Actions', 'Addons', 'Logging'],
+  'Connectivity': ['Links', 'ChannelTypes', 'ThingTypes', 'ConfigDescriptions'],
+  'Daten':        ['Persistence', 'Discovery', 'Inbox'],
+  'UI & Config':  ['Sitemaps', 'Tags', 'Templates', 'ModuleTypes', 'ProfileTypes', 'Transformations', 'UI', 'Services', 'Iconsets'],
+  'Auth & Voice': ['Auth', 'Voice'],
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const $   = id => document.getElementById(id);
+const ts  = () => new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+function log(type, msg) {
+  const icons = { ok: '✓', fail: '✗', info: 'ℹ', sse: '⚡' };
+  const out  = $('output');
+  const line = document.createElement('div');
+  line.className = `out-line out-${type}`;
+  line.innerHTML = `<span class="ts">${ts()}</span><span class="icon">${icons[type] || '·'}</span><span class="msg">${escHtml(String(msg))}</span>`;
+  out.appendChild(line);
+  out.scrollTop = out.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function updateStats() {
+  $('s-total').textContent = stats.total;
+  $('s-ok').textContent    = stats.ok;
+  $('s-fail').textContent  = stats.fail;
+  $('s-pend').textContent  = stats.pend;
+}
+
+// ── API call ──────────────────────────────────────────────────────────────────
+async function callApi(path, body = null, params = {}) {
+  if (!CREDS) { log('fail', 'Nicht verbunden'); return null; }
+  const payload = {
+    ...CREDS,
+    body:   body ?? null,
+    params: params || {},
+  };
+  const res = await fetch(BACKEND + '/api' + path, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+  return text;
+}
+
+// ── Connect ───────────────────────────────────────────────────────────────────
+$('btn-connect').addEventListener('click', async () => {
+  const url      = $('inp-url').value.trim().replace(/\/+$/, '');
+  const username = $('inp-user').value.trim()  || null;
+  const password = $('inp-pass').value.trim()  || null;
+  const token    = $('inp-token').value.trim() || null;
+
+  log('info', `Verbinde mit ${url} …`);
+  try {
+    const res = await fetch(BACKEND + '/api/connect', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ url, username, password, token }),
+    });
+    const data = await res.json();
+    if (data.loggedIn) {
+      CREDS = { url, username, password, token };
+      $('status-dot').className  = 'dot on';
+      $('status-text').textContent = `Verbunden · ${data.isCloud ? 'Cloud' : 'Lokal'}`;
+      log('ok', `Verbunden — isCloud=${data.isCloud}`);
+      buildSidebar();
+    } else {
+      log('fail', 'Login fehlgeschlagen – Zugangsdaten prüfen');
+      $('status-dot').className = 'dot off';
+    }
+  } catch (e) {
+    log('fail', `Verbindungsfehler: ${e.message}`);
+  }
+});
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+let activeClass = null;
+
+function buildSidebar() {
+  const list = $('class-list');
+  list.innerHTML = '';
+  for (const [section, classes] of Object.entries(SECTIONS)) {
+    const sec = document.createElement('div');
+    sec.className = 'sidebar-section';
+    const title = document.createElement('div');
+    title.className = 'sidebar-section-title';
+    title.textContent = section;
+    sec.appendChild(title);
+    for (const cls of classes) {
+      const btn = document.createElement('button');
+      btn.className   = 'class-btn';
+      btn.textContent = cls;
+      btn.dataset.cls = cls;
+      btn.addEventListener('click', () => selectClass(cls, btn));
+      sec.appendChild(btn);
+    }
+    list.appendChild(sec);
+  }
+}
+
+function selectClass(cls, btn) {
+  document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeClass = cls;
+  $('class-title').textContent = cls;
+  const sel = $('method-select');
+  sel.innerHTML = '';
+  (API[cls] || []).forEach(m => {
+    const opt = document.createElement('option');
+    opt.value       = m.label;
+    opt.textContent = m.label + (m.hint ? `  ${m.hint}` : '');
+    sel.appendChild(opt);
+  });
+  $('args-input').value       = '';
+  $('args-input').placeholder = API[cls]?.[0]?.hint || '[]';
+}
+
+// ── Run single ────────────────────────────────────────────────────────────────
+$('btn-run').addEventListener('click', async () => {
+  if (!activeClass) { log('info', 'Klasse wählen'); return; }
+  const methodName = $('method-select').value;
+  const methodDef  = (API[activeClass] || []).find(m => m.label === methodName);
+  if (!methodDef) { log('info', 'Methode nicht gefunden'); return; }
+
+  let args = [];
+  const raw = $('args-input').value.trim();
+  if (raw) {
+    try { args = JSON.parse(raw); }
+    catch { log('fail', 'Argumente sind kein gültiges JSON-Array'); return; }
+  }
+
+  stats.pend++; updateStats();
+  try {
+    const { path, body, params } = methodDef.ep(args);
+    const result  = await callApi(path, body ?? null, params ?? {});
+    stats.pend--; stats.total++; stats.ok++;
+    const preview = result ? result.slice(0, 200) + (result.length > 200 ? '…' : '') : '(leer)';
+    log('ok', `${methodName} → ${preview}`);
+  } catch (e) {
+    stats.pend--; stats.total++; stats.fail++;
+    log('fail', `${methodName}: ${e.message}`);
+  }
+  updateStats();
+});
+
+// ── Run all ───────────────────────────────────────────────────────────────────
+$('btn-test-all').addEventListener('click', async () => {
+  if (!activeClass) { log('info', 'Klasse wählen'); return; }
+  const methods = API[activeClass] || [];
+  log('info', `▶ Starte ${methods.length} Tests für ${activeClass}`);
+  for (const m of methods) {
+    if (m.hint) { log('info', `⏭ ${m.label} übersprungen (erfordert Argumente)`); continue; }
+    stats.pend++; updateStats();
+    try {
+      const { path, body, params } = m.ep([]);
+      const result  = await callApi(path, body ?? null, params ?? {});
+      stats.pend--; stats.total++; stats.ok++;
+      const preview = result ? result.slice(0, 120) + (result.length > 120 ? '…' : '') : '(leer)';
+      log('ok', `${m.label} → ${preview}`);
+    } catch (e) {
+      stats.pend--; stats.total++; stats.fail++;
+      log('fail', `${m.label}: ${e.message}`);
+    }
+    updateStats();
+    await new Promise(r => setTimeout(r, 150));
+  }
+  log('info', `✓ ${activeClass} abgeschlossen`);
+});
+
+// ── Clear ─────────────────────────────────────────────────────────────────────
+$('btn-clear').addEventListener('click', () => {
+  $('output').innerHTML = '';
+  stats = { total: 0, ok: 0, fail: 0, pend: 0 };
+  updateStats();
+});
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+$('btn-sse-start').addEventListener('click', () => {
+  if (!CREDS) { log('fail', 'Zuerst verbinden'); return; }
+  if (window._sseSource) { window._sseSource.close(); }
+
+  const topic  = $('sse-topic-input').value.trim();
+  const params = new URLSearchParams({
+    url:      CREDS.url,
+    username: CREDS.username || '',
+    password: CREDS.password || '',
+    token:    CREDS.token    || '',
+    topics:   topic,
+  });
+
+  $('sse-status').textContent = '● Verbinde…';
+  $('sse-status').style.color = 'var(--accent)';
+
+  const src = new EventSource(`${BACKEND}/api/events/stream?${params}`);
+  src.onopen    = () => {
+    $('sse-status').textContent = '● Aktiv';
+    $('sse-status').style.color = 'var(--ok)';
+    log('sse', 'SSE-Stream geöffnet' + (topic ? ` · Topic: ${topic}` : ' · alle Events'));
+  };
+  src.onmessage = e  => log('sse', e.data);
+  src.onerror   = () => {
+    $('sse-status').textContent = '● Fehler';
+    $('sse-status').style.color = 'var(--fail)';
+  };
+  window._sseSource = src;
+});
+
+$('btn-sse-stop').addEventListener('click', () => {
+  if (window._sseSource) { window._sseSource.close(); window._sseSource = null; }
+  $('sse-status').textContent = '● Inaktiv';
+  $('sse-status').style.color = 'var(--muted)';
+  log('info', 'SSE-Stream gestoppt');
+});
+</script>
+</body>
+</html>
